@@ -29,6 +29,11 @@ import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
 import org.webrtc.Camera1Capturer;
 
+import org.webrtc.Camera1Enumerator;
+import org.webrtc.Camera2Enumerator;
+import org.webrtc.CameraEnumerator;
+import org.webrtc.CameraVideoCapturer;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -110,34 +115,68 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         remoteVideoView.setZOrderMediaOverlay(true);
     }
 
-    // Cycle through likely device names for the camera and return the first
-    // capturer that works, or crash if none do.
-    private VideoCapturer getVideoCapturer(CameraVideoCapturer.CameraEventsHandler eventsHandler) {
-//        String[] cameraFacing = {"front", "back"};
-//        int[] cameraIndex = {0, 1};
-//        int[] cameraOrientation = {0, 90, 180, 270};
-//        for (String facing : cameraFacing) {
-//            for (int index : cameraIndex) {
-//                for (int orientation : cameraOrientation) {
-//                    String name = "Camera " + index + ", Facing " + facing +
-//                            ", Orientation " + orientation;
-//                    VideoCapturer capturer = new VideoCapturerAndroid(name, eventsHandler,false);
-//                    if (capturer != null) {
-//                        Log.d("Using camera: ", name);
-//                        return capturer;
-//                    }
-//                }
-//            }
+//    // Cycle through likely device names for the camera and return the first
+//    // capturer that works, or crash if none do.
+//    private VideoCapturer getVideoCapturer(CameraVideoCapturer.CameraEventsHandler eventsHandler) {
+////        String[] cameraFacing = {"front", "back"};
+////        int[] cameraIndex = {0, 1};
+////        int[] cameraOrientation = {0, 90, 180, 270};
+////        for (String facing : cameraFacing) {
+////            for (int index : cameraIndex) {
+////                for (int orientation : cameraOrientation) {
+////                    String name = "Camera " + index + ", Facing " + facing +
+////                            ", Orientation " + orientation;
+////                    VideoCapturer capturer = new VideoCapturerAndroid(name, eventsHandler,false);
+////                    if (capturer != null) {
+////                        Log.d("Using camera: ", name);
+////                        return capturer;
+////                    }
+////                }
+////            }
+////        }
+////        throw new RuntimeException("Failed to open capture");
+//        Camera1Enumerator cenum = new Camera1Enumerator();
+//        String[] deviceNames = cenum.getDeviceNames();
+//        for(String dev:deviceNames){
+//            if(cenum.isBackFacing(dev)) return cenum.createCapturer(dev,null);
 //        }
-//        throw new RuntimeException("Failed to open capture");
-        Camera1Enumerator cenum = new Camera1Enumerator();
-        String[] deviceNames = cenum.getDeviceNames();
-        for(String dev:deviceNames){
-            if(cenum.isBackFacing(dev)) return cenum.createCapturer(dev,null);
+//
+//        for(String dev:deviceNames){
+//            if(cenum.isFrontFacing(dev)) return cenum.createCapturer(dev,null);
+//        }
+//
+//        return null;
+//    }
+
+
+    private VideoCapturer createVideoCapturer() {
+        VideoCapturer videoCapturer;
+        videoCapturer = createCameraCapturer(new Camera1Enumerator(false));
+        return videoCapturer;
+    }
+
+    private VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
+        final String[] deviceNames = enumerator.getDeviceNames();
+
+        // Trying to find a front facing camera!
+        for (String deviceName : deviceNames) {
+            if (enumerator.isFrontFacing(deviceName)) {
+                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
+
+                if (videoCapturer != null) {
+                    return videoCapturer;
+                }
+            }
         }
 
-        for(String dev:deviceNames){
-            if(cenum.isFrontFacing(dev)) return cenum.createCapturer(dev,null);
+        // We were not able to find a front cam. Look for other cameras
+        for (String deviceName : deviceNames) {
+            if (!enumerator.isFrontFacing(deviceName)) {
+                VideoCapturer videoCapturer = enumerator.createCapturer(deviceName, null);
+                if (videoCapturer != null) {
+                    return videoCapturer;
+                }
+            }
         }
 
         return null;
@@ -176,7 +215,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
 
         //Now create a VideoCapturer instance. Callback methods are there if you want to do something! Duh!
-        VideoCapturer videoCapturerAndroid = getVideoCapturer(new CustomCameraEventsHandlers());
+//        VideoCapturer videoCapturerAndroid = getVideoCapturer(new CustomCameraEventsHandlers());
+        VideoCapturer videoCapturerAndroid = createVideoCapturer();
 
 
         //Create MediaConstraints - Will be useful for specifying video and audio constraints.
